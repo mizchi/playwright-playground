@@ -1,0 +1,16 @@
+{
+  "name": "playwright-playground",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "app:build": "vite build",
+    "app:preview": "vite preview --port 4173 --strictPort",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "vite": "^6.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TODO</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>TODO</h1>
+      <form id="new-todo-form">
+        <input id="new-todo" placeholder="What needs to be done?" autocomplete="off" />
+        <button type="submit">Add</button>
+      </form>
+      <ul id="todo-list" data-testid="todo-list"></ul>
+      <p id="remaining" data-testid="remaining">0 items left</p>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
