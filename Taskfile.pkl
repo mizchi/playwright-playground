@@ -1,0 +1,115 @@
+amends "package://pkg.pkl-lang.org/github.com/mizchi/pkfire/pkfire@0.11.0#/Taskfile.pkl"
+
+local appSources: Listing<String> = new {
+  "app/**/*.ts"
+  "app/**/*.html"
+  "app/**/*.css"
+  "vite.config.ts"
+}
+
+local testSources: Listing<String> = new {
+  "tests/**/*.ts"
+  "playwright.config.ts"
+}
+
+/// アプリのプロダクションビルド（preview / test の前提）。
+local build: Task = new {
+  name = "build"
+  description = "Build the sample app for deterministic preview"
+  cmd = "pnpm app:build"
+  inputs = appSources
+  outputs { "app/dist/**" }
+}
+
+/// 再現性確認: 同一テストを連続2回 green で通す（フレーキー検出 + VRT diff）。
+local verify: Task = new {
+  name = "verify"
+  description = "Run the suite twice; both green = reproducible"
+  cmd = "pnpm exec playwright test && pnpm exec playwright test"
+  inputs = testSources
+  deps { build }
+  cache = false
+}
+
+/// baseline を撮り直す（darwin ローカル用）。CI 用は baseline:linux。
+local baseline: Task = new {
+  name = "baseline"
+  description = "Capture VRT baselines for the current platform"
+  cmd = "pnpm exec playwright test --update-snapshots"
+  cache = false
+}
+
+/// --- 以下は Claude Code 上で agent を起動するためのガイドタスク ---
+/// 実際の探索/生成/修復は .claude/agents/ の subagent が行う。
+
+local plan: Task = new {
+  name = "plan"
+  description = "Guide: invoke the playwright-test-planner agent in Claude Code"
+  cmd = """
+    echo 'Claude Code で playwright-test-planner agent を起動し、'
+    echo '仕様を渡して specs/<topic>.md を生成させる。'
+    echo 'seed: tests/seed.spec.ts / rules: specs/_generation-rules.md'
+    """
+  cache = false
+}
+
+local generate: Task = new {
+  name = "generate"
+  description = "Guide: invoke the playwright-test-generator agent in Claude Code"
+  cmd = """
+    echo 'Claude Code で playwright-test-generator agent を起動し、'
+    echo 'specs/<topic>.md を渡して tests/<topic>.spec.ts を生成させる。'
+    echo '生成後: pnpm run baseline:linux で baseline を撮りコミット。'
+    """
+  cache = false
+}
+
+local heal: Task = new {
+  name = "heal"
+  description = "Guide: invoke the playwright-test-healer agent in Claude Code"
+  cmd = """
+    echo 'verify が落ちたら playwright-test-healer agent を起動し、'
+    echo '失敗テストを UI を見て修復させる。'
+    """
+  cache = false
+}
+
+/// --- git hooks: secretlint を pre-push に ---
+
+local secretlint: Task = new {
+  name = "lint:secretlint"
+  description = "Run secretlint against files in the diff about to be pushed"
+  cmd =
+    #"""
+    set -euo pipefail
+    upstream=$(git rev-parse --symbolic-full-name '@{push}' 2>/dev/null \
+            || git rev-parse --symbolic-full-name '@{u}' 2>/dev/null \
+            || true)
+    if [ -n "$upstream" ]; then
+      files=$(git diff --name-only --diff-filter=ACMR -z "${upstream}..HEAD")
+    else
+      files=$(git ls-files -z)
+    fi
+    if [ -z "$files" ]; then
+      exit 0
+    fi
+    printf '%s' "$files" | xargs -0 pnpm exec secretlint --
+    """#
+  cache = false
+  inputs {
+    ".secretlintrc.json"
+    ".secretlintignore"
+    "package.json"
+    "pnpm-lock.yaml"
+  }
+}
+
+local prePush: Task = new {
+  name = "pre-push"
+  description = "Pre-push gate: secretlint over the outgoing diff"
+  cmd = "echo pre-push ok"
+  cache = false
+  deps { secretlint }
+}
+
+tasks { build; verify; baseline; plan; generate; heal; secretlint; prePush }

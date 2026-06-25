@@ -1,0 +1,4 @@
+# APM skill declarations.
+# playwright 系の project skill をここで宣言する。
+# 正式な skill ソースは skill-selector / catalog で確定してから埋める。
+skills: []
