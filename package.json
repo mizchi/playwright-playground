@@ -9,7 +9,7 @@
     "test": "playwright test",
     "verify": "playwright test && playwright test",
     "baseline": "playwright test --update-snapshots",
-    "baseline:linux": "docker run --rm --network host -v \"$PWD\":/work -w /work mcr.microsoft.com/playwright:v1.61.1-noble sh -c \"corepack enable && pnpm install --frozen-lockfile=false && pnpm exec playwright test --update-snapshots\""
+    "baseline:linux": "docker run --rm --network host --ipc=host -v \"$PWD\":/work -v /work/node_modules -w /work mcr.microsoft.com/playwright:v1.61.1-noble sh -c \"corepack enable && pnpm install --frozen-lockfile=false && pnpm exec playwright test --update-snapshots\""
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

@@ -3,8 +3,12 @@ on: [push, pull_request]
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
-    # baseline:linux と同じイメージで回し VRT を一致させる。
+    # VRT baselines are committed as linux/arm64 (generated via `pnpm baseline:linux`
+    # on a local arm64 container). The runner arch MUST match the baseline arch, so
+    # use an arm64 runner. If you switch to ubuntu-latest (amd64), regenerate the
+    # baselines on amd64 — cross-arch font rendering differs.
+    runs-on: ubuntu-24.04-arm
+    # Same image as baseline:linux so VRT matches.
     container:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     steps:
