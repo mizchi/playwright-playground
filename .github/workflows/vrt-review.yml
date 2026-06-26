@@ -20,6 +20,10 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     steps:
       - uses: actions/checkout@v4
+      # The Playwright container runs as root while the checkout is owned by a
+      # different uid; without this git refuses every command ("dubious ownership"
+      # / "Not a git repository"), which breaks the commit-back step.
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # No `version:` — package.json's packageManager (pnpm@9.0.0) drives it.
       # Pinning both makes pnpm/action-setup@v4 fail with "Multiple versions specified".
       - uses: pnpm/action-setup@v4
@@ -47,7 +51,6 @@ jobs:
         if: steps.vrt.outcome == 'failure'
         run: |
           if ! git diff --quiet; then
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add -A
