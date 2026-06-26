@@ -20,10 +20,19 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history + all branches so collectGitContext can diff against
+          # origin/<base> and read the commit intent. The default shallow,
+          # single-branch checkout leaves origin/main absent -> intent is starved
+          # and the model returns needs-review instead of accept/reject.
+          fetch-depth: 0
       # The Playwright container runs as root while the checkout is owned by a
       # different uid; without this git refuses every command ("dubious ownership"
       # / "Not a git repository"), which breaks the commit-back step.
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      # Make origin/<base> resolvable so collectGitContext can diff against it.
+      - if: github.base_ref != ''
+        run: git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
       # No `version:` — package.json's packageManager (pnpm@9.0.0) drives it.
       # Pinning both makes pnpm/action-setup@v4 fail with "Multiple versions specified".
       - uses: pnpm/action-setup@v4
