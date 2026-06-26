@@ -20,9 +20,9 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
     steps:
       - uses: actions/checkout@v4
+      # No `version:` — package.json's packageManager (pnpm@9.0.0) drives it.
+      # Pinning both makes pnpm/action-setup@v4 fail with "Multiple versions specified".
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 24
