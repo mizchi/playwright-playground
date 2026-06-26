@@ -85,15 +85,20 @@ local secretlint: Task = new {
     upstream=$(git rev-parse --symbolic-full-name '@{push}' 2>/dev/null \
             || git rev-parse --symbolic-full-name '@{u}' 2>/dev/null \
             || true)
-    if [ -n "$upstream" ]; then
-      files=$(git diff --name-only --diff-filter=ACMR -z "${upstream}..HEAD")
-    else
-      files=$(git ls-files -z)
-    fi
-    if [ -z "$files" ]; then
+    # Emit the NUL-separated file list. Do NOT capture this in files=$(...): bash
+    # command substitution strips NUL bytes, collapsing every path into one giant
+    # argument (ENAMETOOLONG). Pipe the NUL stream straight into xargs -0 instead.
+    emit() {
+      if [ -n "$upstream" ]; then
+        git diff --name-only --diff-filter=ACMR -z "${upstream}..HEAD"
+      else
+        git ls-files -z
+      fi
+    }
+    if [ -z "$(emit | tr -d '\0')" ]; then
       exit 0
     fi
-    printf '%s' "$files" | xargs -0 pnpm exec secretlint --
+    emit | xargs -0 pnpm exec secretlint --
     """#
   cache = false
   inputs {
